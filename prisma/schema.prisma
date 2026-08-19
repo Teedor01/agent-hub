@@ -1,0 +1,120 @@
+// AgentHub — Prisma schema
+// Postgres + Prisma per project constraints. Categories are a strict enum.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AgentCategory {
+  REBALANCING
+  GRID_TRADING
+  YIELD_OPTIMIZATION
+  HEALTH_FACTOR
+}
+
+// Distinguishes where a piece of data actually came from.
+// This flag exists on every table that carries agent facts and MUST be
+// surfaced in the UI. Never let DEMO data render indistinguishably from
+// VERIFIED_ONCHAIN / VERIFIED_EXTERNAL data.
+enum DataSource {
+  VERIFIED_ONCHAIN     // read directly from BNB Smart Chain / ERC-8004 registry
+  VERIFIED_EXTERNAL    // read from a trusted external API (e.g. 8004scan)
+  MARKETPLACE_DERIVED  // computed by AgentHub from retrieved facts (e.g. trust score)
+  SELF_REPORTED        // claimed by the agent's creator, not independently verified
+  DEMO                 // seeded fixture data for hackathon demo purposes, not real
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum HireStatus {
+  SIMULATED   // demo hire, no real transaction — Phase 6 default
+  ONCHAIN     // real transaction (Altana session key), stretch goal only
+}
+
+model Agent {
+  id                String        @id @default(cuid())
+  name              String
+  slug              String        @unique
+  description       String
+  category          AgentCategory
+  capabilities      String[]
+  supportedProtocols String[]
+  supportedChains   String[]
+  creator           String
+  pricingModel      String        // human-readable, e.g. "$0.04 / execution"
+  pricingSource     DataSource    @default(SELF_REPORTED)
+  executionModel    String        // e.g. "autonomous, onchain execution every 15 min"
+  status            String        @default("active") // active | inactive | new
+
+  // ERC-8004 identity — nullable until verified via registry/8004scan
+  erc8004Id         String?
+  erc8004Verified   Boolean       @default(false)
+
+  walletAddress     String?
+
+  dataSource        DataSource    @default(DEMO)
+
+  metrics           AgentMetrics?
+  trustScore        TrustScore?
+  hires             Hire[]
+
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([category])
+}
+
+model AgentMetrics {
+  id              String     @id @default(cuid())
+  agent           Agent      @relation(fields: [agentId], references: [id])
+  agentId         String     @unique
+
+  executionsCount Int
+  successRatePct  Float      // 0-100
+  uptimePct       Float      // 0-100
+  avgCostUsd      Float
+  avgLatencySec   Float
+  lastActiveAt    DateTime
+
+  source          DataSource @default(DEMO)
+
+  updatedAt       DateTime   @updatedAt
+}
+
+model TrustScore {
+  id                    String     @id @default(cuid())
+  agent                 Agent      @relation(fields: [agentId], references: [id])
+  agentId               String     @unique
+
+  score                 Int        // 0-100, deterministic — see lib/trust/engine.ts
+
+  identityComponent     Int        // 0-20
+  performanceComponent  Int        // 0-30
+  reliabilityComponent  Int        // 0-25
+  activityComponent     Int        // 0-15
+  verificationComponent Int        // 0-10
+
+  riskLevel             RiskLevel
+
+  computedAt            DateTime   @default(now())
+}
+
+model Hire {
+  id         String     @id @default(cuid())
+  agent      Agent      @relation(fields: [agentId], references: [id])
+  agentId    String
+
+  status     HireStatus @default(SIMULATED)
+  txHash     String?    // null unless status = ONCHAIN
+
+  createdAt  DateTime   @default(now())
+}
