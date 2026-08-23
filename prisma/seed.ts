@@ -7,8 +7,7 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
-// Log which host we're actually connecting to (without leaking the password)
-// so a misdirected seed run is obvious instead of silent.
+
 try {
   const u = new URL(process.env.DATABASE_URL);
   console.log(`Seeding against ${u.hostname}:${u.port}${u.pathname}`);
@@ -19,14 +18,6 @@ try {
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
-// Seed data is intentionally DEMO by default. Every agent and metric row
-// is tagged with a DataSource so the UI can distinguish it from anything
-// pulled later from ERC-8004 / 8004scan. Two agents are pre-marked as if
-// they were later verified (erc8004Verified true, dataSource
-// VERIFIED_EXTERNAL) ONLY as placeholders to exercise the "verified" UI
-// path in Phase 2/3 before real 8004scan integration lands in a later
-// phase — this is noted explicitly and must not be mistaken for a real
-// verification once that phase begins.
 
 type SeedAgent = {
   name: string;
@@ -42,6 +33,13 @@ type SeedAgent = {
   erc8004Id?: string;
   erc8004Verified?: boolean;
   dataSource?: "DEMO" | "VERIFIED_EXTERNAL";
+  altana?: {
+    allowedContract: string;
+    contractLabel: string;
+    spendCapWei: string;
+    sessionDurationSeconds: number;
+    proofSelector: string;
+  };
   metrics: {
     executionsCount: number;
     successRatePct: number;
@@ -53,7 +51,7 @@ type SeedAgent = {
 };
 
 const agents: SeedAgent[] = [
-  // ---- REBALANCING ----
+
   {
     name: "PortfolioBalancer",
     slug: "portfolio-balancer",
@@ -67,6 +65,15 @@ const agents: SeedAgent[] = [
     pricingModel: "$0.05 / rebalance execution",
     executionModel: "Autonomous, triggers when allocation drift exceeds 5%",
     metrics: { executionsCount: 8421, successRatePct: 97.8, uptimePct: 99.1, avgCostUsd: 0.05, avgLatencySec: 2.4, lastActiveDaysAgo: 0 },
+    altana: {
+
+      allowedContract: "0xD99D1c33F9fC3444f8101754aBC46c52416550D1",
+      contractLabel: "PancakeSwap V2 Router (BSC testnet)",
+      spendCapWei: "1000000000000000", 
+      sessionDurationSeconds: 7 * 24 * 60 * 60, // 7 days
+
+      proofSelector: "0xc45a0155",
+    },
   },
   {
     name: "DriftGuard",
@@ -98,7 +105,7 @@ const agents: SeedAgent[] = [
     metrics: { executionsCount: 1204, successRatePct: 94.2, uptimePct: 96.8, avgCostUsd: 0.02, avgLatencySec: 1.6, lastActiveDaysAgo: 3 },
   },
 
-  // ---- GRID TRADING ----
+
   {
     name: "GridMaster",
     slug: "gridmaster",
@@ -127,6 +134,14 @@ const agents: SeedAgent[] = [
     pricingModel: "$0.02 / grid execution",
     executionModel: "Autonomous, executes on each grid-line touch",
     metrics: { executionsCount: 8921, successRatePct: 94.8, uptimePct: 97.8, avgCostUsd: 0.02, avgLatencySec: 3.2, lastActiveDaysAgo: 1 },
+    altana: {
+
+      allowedContract: "0xD99D1c33F9fC3444f8101754aBC46c52416550D1",
+      contractLabel: "PancakeSwap V2 Router (BSC testnet)",
+      spendCapWei: "1000000000000000", // 0.001 BNB
+      sessionDurationSeconds: 7 * 24 * 60 * 60, // 7 days
+      proofSelector: "0xc45a0155", // factory()
+    },
   },
   {
     name: "VolGrid",
@@ -142,7 +157,6 @@ const agents: SeedAgent[] = [
     metrics: { executionsCount: 12481, successRatePct: 97.2, uptimePct: 99.2, avgCostUsd: 0.04, avgLatencySec: 1.8, lastActiveDaysAgo: 0 },
   },
 
-  // ---- YIELD OPTIMIZATION ----
   {
     name: "YieldPilot",
     slug: "yieldpilot",
@@ -171,6 +185,14 @@ const agents: SeedAgent[] = [
     pricingModel: "$0.03 / rebalance to new vault",
     executionModel: "Autonomous, rescans yields every 4 hours",
     metrics: { executionsCount: 6204, successRatePct: 99.1, uptimePct: 99.8, avgCostUsd: 0.03, avgLatencySec: 2.6, lastActiveDaysAgo: 2 },
+    altana: {
+      
+      allowedContract: "0x94d1820b2D1c7c7452A163983Dc888CEC546b77D",
+      contractLabel: "Venus Unitroller / Core Pool Comptroller (BSC testnet)",
+      spendCapWei: "1000000000000000", 
+      sessionDurationSeconds: 7 * 24 * 60 * 60, 
+      proofSelector: "0xf851a440", 
+    },
   },
   {
     name: "HighYieldScanner",
@@ -186,7 +208,33 @@ const agents: SeedAgent[] = [
     metrics: { executionsCount: 4102, successRatePct: 92.4, uptimePct: 95.9, avgCostUsd: 0.05, avgLatencySec: 2.9, lastActiveDaysAgo: 4 },
   },
 
-  // ---- HEALTH FACTOR ----
+
+  {
+    name: "AgentCensus Health Factor Monitor",
+    slug: "agentcensus-health-factor-monitor",
+    description:
+      "Live Venus Protocol position monitor on BSC. Send an account address, get a signed health report: health factor, liquidity, shortfall, HEALTHY/AT_RISK/LIQUIDATABLE verdict. Built by AgentCensus -- the honest index of the BNB agent economy.",
+    category: "HEALTH_FACTOR",
+    capabilities: ["Health factor reporting", "Signed attestations", "Venus Protocol"],
+    supportedProtocols: ["Venus"],
+    supportedChains: ["BNB Smart Chain"],
+    creator: "0x0475c8fa8ac94888eab9b4329b93c263708a9a07",
+    pricingModel: "Not listed via 8004scan -- check agent endpoint",
+    executionModel: "On-demand: query by account address, returns a signed report",
+    erc8004Id: "56:270183",
+    erc8004Verified: true,
+    dataSource: "VERIFIED_EXTERNAL",
+    metrics: { executionsCount: 0, successRatePct: 0, uptimePct: 0, avgCostUsd: 0, avgLatencySec: 0, lastActiveDaysAgo: 0 },
+    altana: {
+
+      allowedContract: "0x94d1820b2D1c7c7452A163983Dc888CEC546b77D",
+      contractLabel: "Venus Unitroller / Core Pool Comptroller (BSC testnet)",
+      spendCapWei: "1000000000000000", 
+      sessionDurationSeconds: 7 * 24 * 60 * 60, // 7 days
+
+      proofSelector: "0xf851a440",
+    },
+  },
   {
     name: "HealthGuard",
     slug: "healthguard",
@@ -231,8 +279,7 @@ const agents: SeedAgent[] = [
   },
 ];
 
-// Deterministic trust score engine (mirrors lib/trust/engine.ts — duplicated
-// here intentionally so seeding doesn't depend on app code import paths).
+
 function computeTrustScore(a: SeedAgent) {
   const identityComponent = a.erc8004Verified ? 20 : 5;
 
@@ -240,7 +287,7 @@ function computeTrustScore(a: SeedAgent) {
     ((a.metrics.successRatePct / 100) * 0.6 + (a.metrics.uptimePct / 100) * 0.4) * 30
   );
 
-  const volumeFactor = Math.min(a.metrics.executionsCount / 15000, 1); // saturates at 15k executions
+  const volumeFactor = Math.min(a.metrics.executionsCount / 15000, 1); 
   const reliabilityComponent = Math.round(volumeFactor * 25);
 
   const activityComponent =
@@ -287,6 +334,12 @@ async function main() {
         erc8004Id: a.erc8004Id,
         erc8004Verified: a.erc8004Verified ?? false,
         dataSource: a.dataSource ?? "DEMO",
+        altanaEnabled: !!a.altana,
+        altanaAllowedContract: a.altana?.allowedContract,
+        altanaContractLabel: a.altana?.contractLabel,
+        altanaSpendCapWei: a.altana?.spendCapWei,
+        altanaSessionDurationSeconds: a.altana?.sessionDurationSeconds,
+        altanaProofSelector: a.altana?.proofSelector,
         metrics: {
           create: {
             executionsCount: a.metrics.executionsCount,

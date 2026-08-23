@@ -63,6 +63,24 @@ model Agent {
 
   dataSource        DataSource    @default(DEMO)
 
+  // Altana session-key hiring config. Null/false for every agent except
+  // the small number actually wired to a real onchain flow -- see
+  // ALTANA_INTEGRATION.md for which agents and why. Kept on Agent (not
+  // hardcoded in route logic) so the hire page can render a real,
+  // agent-specific permissions preview before the user approves anything.
+  altanaEnabled              Boolean  @default(false)
+  altanaAllowedContract      String?  // the single contract this agent's session is scoped to
+  altanaContractLabel        String?  // human-readable label for the UI, e.g. "Venus Comptroller (testnet)"
+  altanaSpendCapWei          String?  // stored as string -- Wei exceeds safe JS number range
+  altanaSessionDurationSeconds Int?
+  // 4-byte selector (hex, e.g. "0xf851a440") for the proof-of-pathway call
+  // made through the session. Different allowed contracts need different
+  // selectors -- a real, harmless, always-present view function on THAT
+  // specific contract (see ALTANA_INTEGRATION.md for how each was picked
+  // and verified). Falls back to Venus Unitroller's admin() selector if
+  // unset, for backward compatibility with the original AgentCensus row.
+  altanaProofSelector        String?
+
   metrics           AgentMetrics?
   trustScore        TrustScore?
   hires             Hire[]
@@ -115,6 +133,19 @@ model Hire {
 
   status     HireStatus @default(SIMULATED)
   txHash     String?    // null unless status = ONCHAIN
+
+  // Populated only when status = ONCHAIN, via the real Altana integration
+  // (lib/altana/client.ts). Null for every SIMULATED hire.
+  // NOTE: altanaSessionId actually stores the session's publicKey (a Hex
+  // string) -- that's what Altana's SDK uses to identify a session for
+  // revocation. Named altanaSessionId here for readability at the schema
+  // level; don't be confused if you go looking for a separate "id" field
+  // on the SDK's Session type -- there isn't one.
+  altanaSessionId      String?
+  altanaWalletAddress  String?
+  spendCapWei          String?  // stored as string -- Wei values exceed safe JS number range
+  sessionExpiresAt     DateTime?
+  revokedAt            DateTime? // set when the user revokes the session in-product
 
   createdAt  DateTime   @default(now())
 }
