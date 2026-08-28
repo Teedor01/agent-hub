@@ -1,7 +1,6 @@
 import { DataSource } from "@/types/domain";
 
 
-
 const CONFIG: Record<DataSource, { label: string; className: string }> = {
   VERIFIED_ONCHAIN: {
     label: "Verified on-chain",

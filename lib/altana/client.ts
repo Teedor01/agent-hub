@@ -14,13 +14,11 @@ export function altanaEnabled(): boolean {
 
 let cachedClient: ReturnType<typeof createClient> | null = null;
 function getClient() {
-  
   if (!cachedClient) cachedClient = createClient({ chains: [BNB_TESTNET] });
   return cachedClient;
 }
 
 export interface HireSessionResult {
-  
   sessionPublicKey: string;
   txHash: string;
   walletAddress: string;
@@ -28,11 +26,13 @@ export interface HireSessionResult {
   expiresAt: number;
 }
 
-
+exercise -- do not widen this to "allow everything".
+ */
 export async function hireAgentWithSession(params: {
   allowedContract: `0x${string}`;
   spendCapWei: bigint;
-  expirySeconds: number; // duration from now, not an absolute timestamp
+  expirySeconds: number; 
+  proofSelector?: `0x${string}`;
 }): Promise<HireSessionResult> {
   const client = getClient();
   const signer = signerFromPrivateKey(ownerPrivateKey());
@@ -45,20 +45,20 @@ export async function hireAgentWithSession(params: {
     signer: wallet.signer,
     permissions: {
       calls: [{ to: params.allowedContract }],
-      
       spend: [{ limit: params.spendCapWei, period: "day" }],
     },
     expiry,
   });
 
+
+  const proofSelector = params.proofSelector ?? "0xf851a440"; 
+
   const result = await client.execute({
     session,
-   
-    calls: [{ to: params.allowedContract, data: "0xf851a440", value: BigInt(0) }],
+    calls: [{ to: params.allowedContract, data: proofSelector, value: BigInt(0) }],
   });
 
   if (!result.transactionHash) {
-    
     throw new Error(`Altana execute() did not return a transaction hash (status: ${result.status})`);
   }
 
