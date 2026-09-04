@@ -36,7 +36,7 @@ export default function CopilotPage() {
     }
   }
 
-
+ 
   useEffect(() => {
     let cancelled = false;
     if (initialQuery.trim()) {
@@ -47,6 +47,7 @@ export default function CopilotPage() {
     return () => {
       cancelled = true;
     };
+    
   }, []);
 
   function toggleSelect(id: string) {
@@ -70,12 +71,12 @@ export default function CopilotPage() {
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="e.g. I want to optimize my stablecoin yield"
-            className="flex-1 rounded-lg border border-slate-300 px-4 py-3 text-sm focus:border-blue-400 focus:outline-none"
+            className="flex-1 rounded-lg border border-slate-300 px-4 py-3 text-sm focus:border-blue-600 focus:outline-none"
           />
           <button
             type="submit"
             disabled={loading}
-            className="rounded-lg bg-blue-600 px-5 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-lg bg-blue-800 px-5 py-3 text-sm font-medium text-white hover:bg-blue-900 disabled:opacity-50"
           >
             {loading ? "Thinking…" : "Ask"}
           </button>
@@ -91,7 +92,7 @@ export default function CopilotPage() {
               <>
                 <div>
                   <h2 className="mb-3 text-sm font-medium text-slate-500">
-                    Ranked candidates, select up to 3 to compare
+                    Ranked candidates — select up to 3 to compare
                   </h2>
                   <div className="space-y-3">
                     {result.agents
@@ -108,7 +109,7 @@ export default function CopilotPage() {
                           <div
                             key={agent.id}
                             className={`flex items-start gap-3 rounded-xl border p-4 ${
-                              isSelected ? "border-blue-400 bg-blue-50/40" : "border-slate-200 bg-white"
+                              isSelected ? "border-blue-600 bg-blue-50/40" : "border-slate-200 bg-white"
                             }`}
                           >
                             <input
@@ -119,7 +120,7 @@ export default function CopilotPage() {
                             />
                             <div className="flex-1">
                               <div className="flex items-center justify-between">
-                                <Link href={`/agents/${agent.slug}`} className="font-medium text-slate-900 hover:text-blue-600">
+                                <Link href={`/agents/${agent.slug}`} className="font-medium text-slate-900 hover:text-blue-800">
                                   {agent.name}
                                 </Link>
                                 <span className="text-sm font-medium text-slate-500">{ev?.score}/100</span>
