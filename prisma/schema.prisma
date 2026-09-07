@@ -1,4 +1,4 @@
-// AgentHub — Prisma schema
+// AgentHub, Prisma schema
 // Postgres + Prisma per project constraints. Categories are a strict enum.
 
 generator client {
@@ -64,7 +64,7 @@ model Agent {
   dataSource        DataSource    @default(DEMO)
 
   // Altana session-key hiring config. Null/false for every agent except
-  // the small number actually wired to a real onchain flow -- see
+  // the small number actually wired to a real onchain flow... see
   // ALTANA_INTEGRATION.md for which agents and why. Kept on Agent (not
   // hardcoded in route logic) so the hire page can render a real,
   // agent-specific permissions preview before the user approves anything.
@@ -75,7 +75,7 @@ model Agent {
   altanaSessionDurationSeconds Int?
   // 4-byte selector (hex, e.g. "0xf851a440") for the proof-of-pathway call
   // made through the session. Different allowed contracts need different
-  // selectors -- a real, harmless, always-present view function on THAT
+  // selectors... a real, harmless, always-present view function on THAT
   // specific contract (see ALTANA_INTEGRATION.md for how each was picked
   // and verified). Falls back to Venus Unitroller's admin() selector if
   // unset, for backward compatibility with the original AgentCensus row.
