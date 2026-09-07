@@ -1,6 +1,7 @@
 import { DataSource } from "@/types/domain";
 
 
+
 const CONFIG: Record<DataSource, { label: string; className: string }> = {
   VERIFIED_ONCHAIN: {
     label: "Verified on-chain",
@@ -12,7 +13,7 @@ const CONFIG: Record<DataSource, { label: string; className: string }> = {
   },
   MARKETPLACE_DERIVED: {
     label: "AgentHub-computed",
-    className: "bg-blue-50 text-blue-700 border-blue-200",
+    className: "bg-blue-50 text-blue-900 border-blue-200",
   },
   SELF_REPORTED: {
     label: "Self-reported",
