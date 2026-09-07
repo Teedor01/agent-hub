@@ -26,8 +26,7 @@ export interface HireSessionResult {
   expiresAt: number;
 }
 
-exercise -- do not widen this to "allow everything".
- */
+
 export async function hireAgentWithSession(params: {
   allowedContract: `0x${string}`;
   spendCapWei: bigint;

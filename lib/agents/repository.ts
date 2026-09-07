@@ -2,7 +2,10 @@ import { prisma } from "@/lib/db";
 import { withDbRetry } from "@/lib/db-retry";
 import { AgentCategory, AgentSummary } from "@/types/domain";
 
-
+// Single choke point for turning Prisma rows into the domain AgentSummary
+// shape. Every place in the app that needs agent data goes through here —
+// this is what makes "LLM never invents agent data" enforceable: the
+// copilot can only ever see what this function returns.
 
 function toSummary(row: any): AgentSummary {
   return {
@@ -78,4 +81,29 @@ export async function listFeaturedAgents(limit = 4): Promise<AgentSummary[]> {
     })
   );
   return rows.filter((r: any) => r.metrics).map(toSummary);
+}
+
+export interface RankedAgentSummary extends AgentSummary {
+  trustScore: number;
+  riskLevel: "LOW" | "MEDIUM" | "HIGH";
+}
+
+// Same ordering as listFeaturedAgents, but keeps the trust score/risk
+// alongside each agent -- used by the homepage's ranked list, which shows
+// the score inline rather than making a second query per agent.
+export async function listTopRatedAgents(limit = 4): Promise<RankedAgentSummary[]> {
+  const rows: any[] = await withDbRetry(() =>
+    prisma.agent.findMany({
+      include: { metrics: true, trustScore: true },
+      orderBy: { trustScore: { score: "desc" } },
+      take: limit,
+    })
+  );
+  return rows
+    .filter((r: any) => r.metrics && r.trustScore)
+    .map((r: any) => ({
+      ...toSummary(r),
+      trustScore: r.trustScore.score,
+      riskLevel: r.trustScore.riskLevel,
+    }));
 }

@@ -1,5 +1,15 @@
 import { AgentMetricsInput, DataSource, RiskLevel, TrustScoreBreakdown } from "@/types/domain";
 
+/**
+ * Deterministic trust score. No LLM involvement — every component is
+ * computed from retrieved facts so the score is reproducible and
+ * explainable. Component weights sum to 100:
+ *   identity        20
+ *   performance      30
+ *   reliability      25
+ *   activity         15
+ *   verification     10
+ */
 
 const RELIABILITY_SATURATION_EXECUTIONS = 15000;
 
@@ -45,7 +55,8 @@ export function computeTrustScore(params: {
   };
 }
 
-
+/** Human-readable evidence lines for the trust score, used in the UI to
+ * satisfy "don't just claim trustworthy — show the evidence." */
 export function explainTrustScore(breakdown: TrustScoreBreakdown, erc8004Verified: boolean): string[] {
   const lines: string[] = [];
   lines.push(
